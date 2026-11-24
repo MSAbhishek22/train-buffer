@@ -1,0 +1,65 @@
+/* Train Buffer — "the printed timetable, brought back honest":
+   cream paper, ink navy, signal red only for risk. */
+:root {
+  --paper: #f6f1e7; --panel: #fffdf7; --ink: #1c2434; --muted: #6d675a;
+  --line: #ddd3bf; --red: #c8372d; --green: #1f6f4a;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Inter", system-ui, sans-serif; line-height: 1.55;
+}
+.topbar {
+  display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+  padding: 1.1rem clamp(1rem, 4vw, 2.5rem); border-bottom: 3px double var(--ink);
+}
+.brand { font-family: "Fraunces", serif; font-weight: 700; font-size: 1.7rem; }
+.brand .red { color: var(--red); }
+.tagline { color: var(--muted); margin: 0; }
+main { padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem; max-width: 1080px; margin: 0 auto; }
+.tool { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--ink); padding: 1.25rem; }
+.fields { display: flex; gap: 1rem; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: .35rem; font-weight: 500; font-size: .92rem; }
+.field.grow { flex: 1 1 260px; }
+.field input[type="text"], .field select {
+  font: inherit; padding: .55rem .7rem; border: 1px solid var(--ink);
+  background: #fff; color: var(--ink); border-radius: 3px;
+}
+.matches { display: flex; flex-direction: column; margin-top: .5rem; }
+.matches button {
+  text-align: left; font: inherit; background: none; border: none;
+  border-bottom: 1px solid var(--line); padding: .45rem .3rem; cursor: pointer;
+}
+.matches button:hover, .matches button:focus-visible { background: #f3ecdb; }
+.matches .num { font-family: "IBM Plex Mono", monospace; font-weight: 600; }
+.buffer-row { display: flex; gap: 1rem; align-items: end; margin-top: 1.2rem; flex-wrap: wrap; }
+input[type="range"] { width: 100%; accent-color: var(--red); }
+.buffer-read { font-family: "IBM Plex Mono", monospace; font-size: 1.5rem; font-weight: 600; white-space: nowrap; }
+.chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; align-items: center; }
+.chip {
+  font: inherit; font-size: .88rem; border: 1px solid var(--ink); background: #fff;
+  border-radius: 999px; padding: .3rem .8rem; cursor: pointer;
+}
+.chip.target { border-color: var(--green); color: var(--green); font-weight: 600; }
+.chip-sep { width: 1rem; }
+.answer { border-top: 1px solid var(--line); margin-top: 1.2rem; padding-top: 1rem; min-height: 5.5rem; }
+.answer .big {
+  font-family: "IBM Plex Mono", monospace; font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 600; line-height: 1.25; margin: 0 0 .4rem;
+}
+.answer .big .risk-num { color: var(--red); }
+.answer .big .safe-num { color: var(--green); }
+.answer .rec { font-size: 1.02rem; margin: .2rem 0; }
+.answer .meta { font-family: "IBM Plex Mono", monospace; font-size: .85rem; color: var(--muted); }
+.muted { color: var(--muted); }
+.terrain-wrap { margin-top: 1rem; }
+#terrain { width: 100%; height: 240px; display: block; background: #efe8d8; border: 1px solid var(--line); }
+.terrain-cap { font-size: .88rem; margin: .4rem 0 0; }
+.story { max-width: 760px; margin: 2.5rem auto 0; }
+.story h2 { font-family: "Fraunces", serif; margin-top: 2.2rem; }
+table.eval { border-collapse: collapse; width: 100%; font-family: "IBM Plex Mono", monospace; font-size: .92rem; }
+table.eval th, table.eval td { border-bottom: 1px solid var(--line); padding: .45rem .5rem; text-align: right; }
+table.eval th:first-child, table.eval td:first-child { text-align: left; }
+.limits li { margin-bottom: .5rem; }
+footer { border-top: 3px double var(--ink); padding: 1.2rem clamp(1rem, 4vw, 2.5rem); color: var(--muted); font-size: .9rem; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }

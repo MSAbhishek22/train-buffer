@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train Buffer — how much time to leave between your train and your connection</title>
+<meta name="description" content="Averages lie. Train Buffer counts a year of real runs and tells you how often your train, at your station, arrived later than the buffer you are planning — and the buffer that keeps your risk under 5%.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Train <span class="red">Buffer</span></div>
+  <p class="tagline">How late is your train, really — counted, not averaged.</p>
+</header>
+
+<main>
+  <section class="tool" aria-label="Buffer checker">
+    <div class="fields">
+      <label class="field grow">Train number or name
+        <input id="trainSearch" type="text" inputmode="search" placeholder="Try 12951, or search Mumbai Rajdhani…" autocomplete="off">
+      </label>
+      <label class="field">You get down at
+        <select id="stationSelect" disabled><option>Pick a train first</option></select>
+      </label>
+    </div>
+    <div id="trainMatches" class="matches" role="listbox" aria-label="Matching trains"></div>
+
+    <div class="buffer-row">
+      <label class="field grow">Time between this train's scheduled arrival and your connection
+        <input id="bufferSlider" type="range" min="15" max="360" step="5" value="120" disabled>
+      </label>
+      <div class="buffer-read"><span id="bufferValue">2 h 00</span></div>
+    </div>
+    <div class="chips">
+      <button type="button" class="chip" data-buffer="60">1 hour</button>
+      <button type="button" class="chip" data-buffer="120">2 hours</button>
+      <button type="button" class="chip" data-buffer="180">3 hours</button>
+      <span class="chip-sep"></span>
+      <button type="button" class="chip target" data-target="5">Keep my risk under 5%</button>
+      <button type="button" class="chip target" data-target="10">Under 10%</button>
+    </div>
+
+    <div id="answer" class="answer" aria-live="polite">
+      <p class="muted" id="answerHint">Loading a year of real runs (44,693 train-and-station counts)…</p>
+    </div>
+
+    <div class="terrain-wrap">
+      <canvas id="terrain" aria-label="Delay terrain: the shape of this train's lateness, with a wall at your buffer. The red part beyond the wall is your miss chance."></canvas>
+      <p class="terrain-cap muted">The shape of this train's lateness. The wall is your buffer. Everything red beyond it is the chance you miss your connection.</p>
+    </div>
+  </section>
+
+  <section class="story">
+    <h2>Why averages lie</h2>
+    <p>Open any train site and you will find one number per station: <em>average delay</em>. On etrain's running-history pages that is all there is — an average, and three wide buckets. But a connection is not killed by the average day. It is killed by the bad tail: the one day in eight when the train rolls in three hours late. A train can average 25 minutes late and still end your trip once a month. Parliament's own questions on punctuality name the harm plainly — <em>missed connecting trains, financial losses</em> — and answer it with one network-wide percentage, about 77%. Neither number can tell you whether <strong>your</strong> buffer is enough.</p>
+    <p>So this page asks the only question that matters at booking time: <strong>on how many of its recorded runs did this train, at this station, arrive later than the time you are leaving?</strong> That share is your risk. And it works backwards too: the buffer that would have kept your risk under 5%, counted from the same runs.</p>
+
+    <h2>How this was checked</h2>
+    <p>The counts come from a year of per-run records (February 2025 – February 2026, 2.7 million station stops after cleaning). To prove the method is not just confident but <em>right</em>, it was tested the strict way: probabilities were computed from runs before September 2025, then scored against what actually happened from September 2025 onwards, across 26,239 train-and-station pairs. Lower score is better:</p>
+    <table class="eval">
+      <thead><tr><th>Your buffer</th><th>This method</th><th>Average-delay rule</th><th>One global rate</th></tr></thead>
+      <tbody>
+        <tr><td>60 min</td><td><strong>0.075</strong></td><td>0.105</td><td>0.110</td></tr>
+        <tr><td>120 min</td><td><strong>0.033</strong></td><td>0.042</td><td>0.044</td></tr>
+        <tr><td>180 min</td><td><strong>0.017</strong></td><td>0.020</td><td>0.021</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Brier scores, lower is better. The average-delay rule is what incumbent sites effectively show you. Full method: EVALUATION.md in the project repository.</p>
+
+    <h2>Honest limits</h2>
+    <ul class="limits">
+      <li><strong>History, not prophecy.</strong> A strike, a derailment or fog on your day is not in last year's counts. This tells you the odds, not the future.</li>
+      <li><strong>Some recorded times are estimates.</strong> The openly licensed copy of this data lost the flags that mark which station times were reported and which were filled in by the system. That is stated here, on the page, not buried — and it is why every answer shows its run count.</li>
+      <li><strong>Coverage is not the whole railway.</strong> The year's records used here cover 3,060 trains. Some well-known trains (the Howrah Rajdhani, 12301, among them) are missing from the openly licensed copy — if your train is not found, that is a gap in the data, not in your ticket.</li>
+      <li><strong>Few runs, no answer.</strong> Below 30 recorded runs for a train at a station, this page refuses to guess.</li>
+      <li><strong>Booking-time tool.</strong> It does not show today's running status. For that, use the official NTES enquiry.</li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <p>Built by M S Abhishek. Data: Indian Railways delay records via Hugging Face (prabh21243343/indian-railways-delays, converted config, MIT per its dataset card), Feb 2025 – Feb 2026. Incumbent comparison: etrain.info running-history pages, read Nov 2026.</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.152.2/three.min.js"></script>
+<script src="risk.js"></script>
+<script src="terrain.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
