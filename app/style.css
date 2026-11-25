@@ -11,21 +11,26 @@ body {
 }
 .topbar {
   display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
-  padding: 1.1rem clamp(1rem, 4vw, 2.5rem); border-bottom: 3px double var(--ink);
+  padding: .55rem clamp(1rem, 4vw, 2.5rem); border-bottom: 3px double var(--ink);
 }
 .brand { font-family: "Fraunces", serif; font-weight: 700; font-size: 1.7rem; }
 .brand .red { color: var(--red); }
 .tagline { color: var(--muted); margin: 0; }
-main { padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem; max-width: 1080px; margin: 0 auto; }
-.tool { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--ink); padding: 1.25rem; scroll-margin-top: 1rem; }
-.hero { padding: 2.2rem 0 1.6rem; }
+main { padding: .75rem clamp(1rem, 4vw, 2.5rem) 3rem; max-width: 1080px; margin: 0 auto; }
+.tool { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--ink); padding: 1rem 1.25rem 1.25rem; scroll-margin-top: 1rem; }
+/* The vertical rhythm above the tool is deliberately tight: the
+   Delay Terrain canvas must start inside the first viewport, not
+   below the fold. The short-screen block at the bottom tightens
+   it further. Do not re-space this page without checking where
+   the canvas lands at 1920x1000 and 1366x768. */
+.hero { padding: 1rem 0 .85rem; }
 .hero h1 {
   font-family: "Fraunces", serif; font-weight: 700; line-height: 1.12;
-  font-size: clamp(1.9rem, 5.5vw, 3.1rem); margin: 0 0 .8rem; max-width: 18ch;
+  font-size: clamp(1.9rem, 5.5vw, 3.1rem); margin: 0 0 .55rem; max-width: 34ch;
 }
 .hero h1 .red { color: var(--red); }
-.hero-sub { font-size: 1.08rem; max-width: 62ch; margin: 0 0 .6rem; }
-.hero-demo { max-width: 62ch; margin: 0 0 1.1rem; }
+.hero-sub { font-size: 1.08rem; max-width: 85ch; margin: 0 0 .45rem; }
+.hero-demo { max-width: 85ch; margin: 0 0 .6rem; }
 .scroll-cue {
   display: inline-block; font-weight: 600; color: var(--ink); text-decoration: none;
   border: 1px solid var(--ink); border-radius: 999px; padding: .45rem 1rem; background: #fff;
@@ -47,17 +52,17 @@ main { padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem; max-width: 1080px; margin:
 }
 .matches button:hover, .matches button:focus-visible { background: #f3ecdb; }
 .matches .num { font-family: "IBM Plex Mono", monospace; font-weight: 600; }
-.buffer-row { display: flex; gap: 1rem; align-items: end; margin-top: 1.2rem; flex-wrap: wrap; }
+.buffer-row { display: flex; gap: 1rem; align-items: end; margin-top: .75rem; flex-wrap: wrap; }
 input[type="range"] { width: 100%; accent-color: var(--red); }
 .buffer-read { font-family: "IBM Plex Mono", monospace; font-size: 1.5rem; font-weight: 600; white-space: nowrap; }
-.chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; align-items: center; }
+.chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .45rem; align-items: center; }
 .chip {
   font: inherit; font-size: .88rem; border: 1px solid var(--ink); background: #fff;
   border-radius: 999px; padding: .3rem .8rem; cursor: pointer;
 }
 .chip.target { border-color: var(--green); color: var(--green); font-weight: 600; }
 .chip-sep { width: 1rem; }
-.answer { border-top: 1px solid var(--line); margin-top: 1.2rem; padding-top: 1rem; min-height: 5.5rem; }
+.answer { border-top: 1px solid var(--line); margin-top: .75rem; padding-top: .65rem; min-height: 5.5rem; }
 .answer .big {
   font-family: "IBM Plex Mono", monospace; font-size: clamp(1.5rem, 4vw, 2.2rem);
   font-weight: 600; line-height: 1.25; margin: 0 0 .4rem;
@@ -67,7 +72,7 @@ input[type="range"] { width: 100%; accent-color: var(--red); }
 .answer .rec { font-size: 1.02rem; margin: .2rem 0; }
 .answer .meta { font-family: "IBM Plex Mono", monospace; font-size: .85rem; color: var(--muted); }
 .muted { color: var(--muted); }
-.terrain-wrap { margin-top: 1rem; }
+.terrain-wrap { margin-top: .55rem; }
 #terrain { width: 100%; height: 380px; display: block; background: #efe8d8; border: 1px solid var(--line); }
 .terrain-cap { font-size: .88rem; margin: .4rem 0 0; }
 .story { max-width: 760px; margin: 2.5rem auto 0; }
@@ -78,3 +83,24 @@ table.eval th:first-child, table.eval td:first-child { text-align: left; }
 .limits li { margin-bottom: .5rem; }
 footer { border-top: 3px double var(--ink); padding: 1.2rem clamp(1rem, 4vw, 2.5rem); color: var(--muted); font-size: .9rem; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+/* Short screens (a 1366x768 laptop, a shorter window): compress
+   the same vertical rhythm further so the top of the Delay
+   Terrain still lands inside the first viewport. Spacing and
+   type sizes only — no content is hidden or removed. */
+@media (max-height: 880px) {
+  .topbar { padding-top: .4rem; padding-bottom: .4rem; }
+  main { padding-top: .5rem; }
+  .hero { padding: .6rem 0 .5rem; }
+  .hero h1 { font-size: clamp(1.5rem, 4vw, 2rem); }
+  .hero-sub { font-size: 1rem; margin-bottom: .35rem; }
+  .hero-demo { margin-bottom: .4rem; }
+  .scroll-cue { padding-top: .38rem; padding-bottom: .38rem; }
+  .tool { padding-top: .8rem; }
+  .field { gap: .25rem; }
+  .field input[type="text"], .field select { padding-top: .45rem; padding-bottom: .45rem; }
+  .buffer-row { margin-top: .55rem; }
+  .chips { margin-top: .35rem; }
+  .answer { margin-top: .55rem; padding-top: .5rem; }
+  .answer .big { font-size: 1.8rem; }
+  .terrain-wrap { margin-top: .4rem; }
+}

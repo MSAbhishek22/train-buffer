@@ -125,13 +125,26 @@
     this.camera.updateProjectionMatrix();
     if (this._peakY) this._frameCamera(this._peakY);
   };
-  /* Frame the whole solid: distance is the larger of what the
-     peak height needs (peak ≈ 45% of frame height) and what the
-     shape's width needs at the canvas aspect, so neither the
-     cliff nor the tail tip is cropped. Mostly frontal, slightly
-     left and above, so the filled front profile reads first and
-     the depth and start cap read second. Framing is display
-     only — it never touches a data value. */
+  /* Frame the whole solid. The starting distance is the larger
+     of what the peak height needs (peak ≈ 45% of frame height)
+     and what the shape's width needs at the canvas aspect. But
+     that estimate frames the shape as if the camera looked
+     straight at it — the camera actually sits left of and above
+     centre, and from there perspective pushed the shape's high
+     left end (the peak) past the canvas's left edge. So the
+     estimate is only a starting point: the real points of the
+     built scene (the profile's front and back edges, the base
+     corners, the wall's top corners at its true x — stored by
+     _build as _fitPoints) are projected through the placed
+     camera, and if any sits outside the frame the distance is
+     searched (bisected, since a point's screen offset only
+     shrinks as the camera pulls back along its ray) for the
+     smallest distance that keeps every point inside with a
+     small margin — no further out than needed, so the shape
+     still fills the canvas as before. Mostly frontal, slightly
+     left and above, so the filled front profile reads first
+     and the depth and start cap read second. Framing is
+     display only — it never touches a data value. */
   DelayTerrain.prototype._frameCamera = function (peakY) {
     if (!this.camera) return;
     var target = new THREE.Vector3(0, Math.max(peakY * 0.35, 0.4), 0);
@@ -140,6 +153,37 @@
     var distW = (WIDTH + 1.5) / (2 * halfFovTan * (this.camera.aspect || 2));
     var dist = Math.min(30, Math.max(9, Math.max(distH, distW)));
     var dir = new THREE.Vector3(-0.32, 0.42, 1).normalize();
+    var top = Math.max(peakY, peakY * 1.12 + 0.35);
+    var pts = this._fitPoints || [
+      new THREE.Vector3(-WIDTH / 2, peakY, DEPTH / 2),
+      new THREE.Vector3(-WIDTH / 2, peakY, -DEPTH / 2),
+      new THREE.Vector3(WIDTH / 2, 0, DEPTH / 2),
+      new THREE.Vector3(WIDTH / 2, 0, -DEPTH / 2),
+      new THREE.Vector3(-WIDTH / 2, 0, DEPTH / 2),
+      new THREE.Vector3(-WIDTH / 2, 0, -DEPTH / 2),
+      new THREE.Vector3(0, top, (DEPTH + 0.8) / 2),
+      new THREE.Vector3(0, top, -(DEPTH + 0.8) / 2)
+    ];
+    var MARGIN = 0.93, self = this;
+    function fits(d) {
+      self.camera.position.copy(target).addScaledVector(dir, d);
+      self.camera.lookAt(target);
+      self.camera.updateMatrixWorld();
+      for (var j = 0; j < pts.length; j++) {
+        var v = pts[j].clone().project(self.camera);
+        if (Math.abs(v.x) > MARGIN || Math.abs(v.y) > MARGIN) return false;
+      }
+      return true;
+    }
+    if (!fits(dist)) {
+      var lo = dist, hi = Math.min(80, dist * 2);
+      while (!fits(hi) && hi < 80) { lo = hi; hi = Math.min(80, hi * 2); }
+      for (var k = 0; k < 16; k++) {
+        var mid = (lo + hi) / 2;
+        if (fits(mid)) hi = mid; else lo = mid;
+      }
+      dist = hi;
+    }
     this.camera.position.copy(target).addScaledVector(dir, dist);
     this.camera.lookAt(target);
   };
@@ -207,6 +251,21 @@
       d.position.set(xOf(p.x), ridgeY(p.y) + 0.04, 0);
       this.group.add(d);
     }.bind(this));
+    /* The points the camera must keep in frame: the profile
+       itself (front and back edges, marker dots included), the
+       base corners, and the wall's top corners at its real x. */
+    var fitPoints = [];
+    this.points.forEach(function (p) {
+      fitPoints.push(new THREE.Vector3(xOf(p.x), ridgeY(p.y) + 0.2, DEPTH / 2));
+      fitPoints.push(new THREE.Vector3(xOf(p.x), ridgeY(p.y) + 0.2, -DEPTH / 2));
+    });
+    [[-WIDTH / 2, DEPTH / 2], [WIDTH / 2, DEPTH / 2],
+     [-WIDTH / 2, -DEPTH / 2], [WIDTH / 2, -DEPTH / 2]].forEach(function (c) {
+      fitPoints.push(new THREE.Vector3(c[0], 0, c[1]));
+    });
+    fitPoints.push(new THREE.Vector3(xOf(this.buffer), wallH + 0.08, (DEPTH + 0.8) / 2));
+    fitPoints.push(new THREE.Vector3(xOf(this.buffer), wallH + 0.08, -(DEPTH + 0.8) / 2));
+    this._fitPoints = fitPoints;
     this._frameCamera(this._peakY);
     this._render();
   };

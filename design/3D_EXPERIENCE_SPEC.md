@@ -27,6 +27,11 @@ because the distribution is the product.
   axis uses a square-root spread so the early minutes get room; the
   wall and the grid dots use the same mapping. Neither transform
   changes any probability, answer number, or ordering.
+- Camera framing is fit-checked whenever the scene is built: the
+  profile points, base corners and wall-top corners are projected
+  through the placed camera and the distance adjusted so nothing —
+  the peak included — is cropped at the canvas edge, with the shape
+  still filling most of the frame. Framing changes no data value.
 - Below 30 runs there is no terrain and no answer — the page says why.
 - Reduced motion: static camera; the wall still moves with the
   slider (that movement is the information, kept minimal).
