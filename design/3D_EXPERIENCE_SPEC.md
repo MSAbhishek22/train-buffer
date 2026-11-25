@@ -3,7 +3,8 @@
 ## What it is
 For the chosen train at the chosen station, the empirical survival
 curve of arrival delay — P(arriving later than t) for t = 0..360+
-minutes — drawn as a descending 3D ridge (Three.js). A translucent
+minutes — drawn as a solid 3D cliff: the profile filled down to
+the floor and extruded with real depth (Three.js). A translucent
 vertical "buffer wall" stands at the user's chosen buffer. The ridge
 mass beyond the wall is coloured signal red; its share of the whole
 is exactly the miss probability in the answer card. Move the buffer
@@ -21,6 +22,11 @@ because the distribution is the product.
 - The ridge is drawn from the pair's precomputed risk grid
   (15..360 min, empirical, from the shipped aggregate) with monotone
   interpolation — no invented smoothness: grid points are marked.
+- Display transforms, disclosed in the on-page caption: height is a
+  uniform vertical stretch of the probability (×14), and the minute
+  axis uses a square-root spread so the early minutes get room; the
+  wall and the grid dots use the same mapping. Neither transform
+  changes any probability, answer number, or ordering.
 - Below 30 runs there is no terrain and no answer — the page says why.
 - Reduced motion: static camera; the wall still moves with the
   slider (that movement is the information, kept minimal).

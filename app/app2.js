@@ -143,7 +143,7 @@
       " min · 9 in 10 runs within " + Math.round(p.p90) + " min · data " + DATA.meta.window;
     els.answer.appendChild(meta);
     els.terrainCap.textContent = "Showing " + currentTrain + " " + name + " into " + currentStation +
-      " — the ridge is this train's real lateness. The wall is your buffer; everything red beyond it is the chance you miss your connection. Change the train above and the shape becomes yours.";
+      " — the ridge is this train's real lateness. The wall is your buffer; everything red beyond it is the chance you miss your connection. Its heights are stretched and its minutes spread on a square-root scale so the shape reads — the chances are the counted ones, unchanged. Change the train above and the shape becomes yours.";
     terrain.setData(R.survivalPoints(p, DATA.meta.buffers), buffer);
   }
 

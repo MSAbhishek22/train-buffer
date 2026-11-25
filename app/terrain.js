@@ -1,26 +1,34 @@
 /* Train Buffer "Delay Terrain" — the empirical survival curve of
-   arrival delay as a 3D ridge, with a translucent wall at the user's
-   buffer. Ridge beyond the wall is signal red: that share IS the
-   miss probability. 2D canvas fallback draws the same curve.
-   Display note: ridge height is a UNIFORM vertical stretch of the
-   survival probability (HEIGHT_SCALE below) — it changes how tall
-   the shape reads, never the probabilities, the answer numbers,
-   or the ordering of any two points. See design/3D_EXPERIENCE_SPEC.md. */
+   arrival delay as a solid 3D cliff: the profile filled down to
+   the floor and extruded with real depth, with a translucent
+   wall at the user's buffer. The solid beyond the wall is signal
+   red: that share IS the miss probability. 2D canvas fallback
+   draws the same curve.
+   Display transforms (both disclosed in the on-page caption;
+   neither changes any probability, any answer number, or the
+   ordering of any two points):
+   - Height: a UNIFORM vertical stretch of the survival
+     probability (HEIGHT_SCALE below), same factor everywhere.
+   - Minutes: the minute axis is spread on a SQUARE-ROOT scale
+     (xOf below) so the early minutes — where the curve actually
+     falls — get room, instead of half the frame going to a
+     zero-height tail. The wall and the grid-point dots use the
+     same mapping, so every mark still sits at its true minute.
+   See design/3D_EXPERIENCE_SPEC.md. */
 (function () {
   "use strict";
-  var WIDTH = 24, MAX_MIN = 360;
-  /* Uniform display stretch only. p = 0.246 (the live demo train's
-     P(>0)) reads 0.1 + 0.246*9 = 2.31 units tall; p = 0.033 at the
-     120-min wall reads 0.40. Same factor for every point, so the
-     shape's proportions are the data's proportions, just taller. */
-  var HEIGHT_SCALE = 9, RIBBON_HALF = 2.0;
-  function ridgeY(p) { return 0.1 + p * HEIGHT_SCALE; }
+  var WIDTH = 16, MAX_MIN = 360, DEPTH = 5;
+  var HEIGHT_SCALE = 14, BASE = 0.15;
+  var GREY = 0x8b93a1, RED = 0xc8372d;
+  function ridgeY(p) { return BASE + p * HEIGHT_SCALE; }
+  function xOf(min) { return -WIDTH / 2 + Math.sqrt(Math.max(0, min) / MAX_MIN) * WIDTH; }
 
   function DelayTerrain(canvas) {
     this.canvas = canvas;
     this.points = null;   // [{x: minutes, y: P(>x)}]
     this.buffer = 120;
     this.mode = "2d";
+    this._peakY = null;
     this._tryInit3D();
     if (this.mode !== "3d") this._draw2D();
   }
@@ -33,8 +41,6 @@
     this.buffer = bufferMin;
     if (this.mode === "3d") this._build(); else this._draw2D();
   };
-
-  function xOf(min) { return -WIDTH / 2 + (min / MAX_MIN) * WIDTH; }
 
   DelayTerrain.prototype._draw2D = function () {
     var ctx = this.canvas.getContext("2d");
@@ -85,34 +91,29 @@
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(0xefe8d8);
       this.camera = new THREE.PerspectiveCamera(40, 2, 0.1, 100);
-      /* Lower, closer, more side-on than before (-10, 6.5, 13):
-         a low elevation angle makes vertical extent read, and the
-         nearer camera fills the frame with the ridge instead of
-         the pale floor. lookAt y tracks the taller ridge. */
-      this.camera.position.set(-10, 5.2, 12.5);
-      this.camera.lookAt(0.5, 1.2, 0);
-      this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+      this.scene.add(new THREE.AmbientLight(0xffffff, 0.75));
       var key = new THREE.DirectionalLight(0xffffff, 1.05);
       key.position.set(5, 10, 7); this.scene.add(key);
-      /* Fill from the camera side so the ridge's near vertical face
-         (the face the viewer actually sees) is lit, not in shade. */
+      /* Fill from the camera side so the solid's front profile
+         face — the face the viewer actually reads — is lit. */
       var fill = new THREE.DirectionalLight(0xfff2dd, 0.5);
       fill.position.set(-6, 4, 10); this.scene.add(fill);
-      /* Tighter floor (was 70x26): the old expanse of pale plane
-         dwarfed a ~2-unit ridge. 36x16 still frames it with margin. */
-      var floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 16),
+      /* Floor sized to the shape's footprint (was a 36x16 expanse
+         that dwarfed the ridge): a margin around the solid, no
+         more, with a faint grid so height and wall position can
+         be judged against the ground. */
+      var floor = new THREE.Mesh(new THREE.PlaneGeometry(WIDTH + 5, DEPTH + 5),
         new THREE.MeshStandardMaterial({ color: 0xe7ddc8, roughness: 1 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -0.02; this.scene.add(floor);
-      /* Faint floor grid for depth: squashed square grid (32x16
-         cells of 2) so the eye can judge the ridge's height and
-         the wall's position against the floor. */
-      var grid = new THREE.GridHelper(32, 16, 0xbfae87, 0xd5c9ab);
-      grid.scale.z = 0.5; grid.position.y = 0;
+      var grid = new THREE.GridHelper(WIDTH + 4, 10, 0xbfae87, 0xd5c9ab);
+      grid.scale.z = (DEPTH + 4) / (WIDTH + 4);
+      grid.position.y = 0.001;
       grid.material.transparent = true; grid.material.opacity = 0.5;
       this.scene.add(grid);
       this.group = new THREE.Group(); this.scene.add(this.group);
       this.mode = "3d";
       this._resize();
+      this._frameCamera(ridgeY(0.25));
       var self = this;
       window.addEventListener("resize", function () { self._resize(); self._render(); });
     } catch (err) { this.mode = "2d"; this.renderer = null; }
@@ -122,31 +123,51 @@
     this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight, false);
     this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
     this.camera.updateProjectionMatrix();
+    if (this._peakY) this._frameCamera(this._peakY);
   };
-  function ribbon(points, fromX, toX, color) {
-    var verts = [], idx = [];
+  /* Frame the whole solid: distance is the larger of what the
+     peak height needs (peak ≈ 45% of frame height) and what the
+     shape's width needs at the canvas aspect, so neither the
+     cliff nor the tail tip is cropped. Mostly frontal, slightly
+     left and above, so the filled front profile reads first and
+     the depth and start cap read second. Framing is display
+     only — it never touches a data value. */
+  DelayTerrain.prototype._frameCamera = function (peakY) {
+    if (!this.camera) return;
+    var target = new THREE.Vector3(0, Math.max(peakY * 0.35, 0.4), 0);
+    var halfFovTan = Math.tan(THREE.MathUtils.degToRad(20));
+    var distH = peakY / (2 * halfFovTan * 0.45);
+    var distW = (WIDTH + 1.5) / (2 * halfFovTan * (this.camera.aspect || 2));
+    var dist = Math.min(30, Math.max(9, Math.max(distH, distW)));
+    var dir = new THREE.Vector3(-0.32, 0.42, 1).normalize();
+    this.camera.position.copy(target).addScaledVector(dir, dist);
+    this.camera.lookAt(target);
+  };
+  function segmentPoints(points, fromX, toX) {
     var pts = points.filter(function (p) { return p.x >= fromX && p.x <= toX; });
     if (!pts.length || pts[0].x > fromX) pts.unshift({ x: fromX, y: interp(points, fromX) });
     if (pts[pts.length - 1].x < toX) pts.push({ x: toX, y: interp(points, toX) });
-    pts.forEach(function (p) {
-      var x = xOf(p.x), y = ridgeY(p.y);
-      /* Ribbon half-depth 2.0 (was 1.1): a deeper slab shows a
-         real vertical side face to the camera, so the ridge reads
-         as a raised solid instead of a thin fin. Depth is display
-         only; x and y are the data. */
-      verts.push(x, 0, -RIBBON_HALF, x, y, -RIBBON_HALF, x, y, RIBBON_HALF, x, 0, RIBBON_HALF);
-    });
-    for (var i = 0; i < pts.length - 1; i++) {
-      var a = i * 4, b = a + 4;
-      idx.push(a, b, a + 1, b, b + 1, a + 1, a + 1, b + 1, a + 2, b + 1, b + 2, a + 2, a + 2, b + 2, a + 3, b + 2, b + 3, a + 3);
-    }
-    var geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
-    geo.setIndex(idx); geo.computeVertexNormals();
-    /* The red (risk) ribbon gets a faint warm emissive lift so its
-       shaded side still reads signal red; the grey ribbon stays flat. */
-    var mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.55, metalness: 0.1 });
-    if (color === 0xc8372d) { mat.emissive = new THREE.Color(0x2a0705); }
+    return pts;
+  }
+  /* A closed solid: the survival profile filled down to the
+     floor, extruded DEPTH deep with end caps — a descending
+     cliff with mass from any angle, not a ribbon whose top
+     strip is all the camera sees. */
+  function solid(points, fromX, toX, color) {
+    if (toX - fromX < 1) return null;
+    var pts = segmentPoints(points, fromX, toX);
+    if (pts.length < 2) return null;
+    var shape = new THREE.Shape();
+    shape.moveTo(xOf(pts[0].x), 0);
+    pts.forEach(function (p) { shape.lineTo(xOf(p.x), ridgeY(p.y)); });
+    shape.lineTo(xOf(pts[pts.length - 1].x), 0);
+    shape.closePath();
+    var geo = new THREE.ExtrudeGeometry(shape, { depth: DEPTH, bevelEnabled: false });
+    geo.translate(0, 0, -DEPTH / 2);
+    var mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.6, metalness: 0.05 });
+    /* The red (risk) solid gets a faint warm emissive lift so
+       its shaded faces still read signal red. */
+    if (color === RED) { mat.emissive = new THREE.Color(0x2a0705); }
     return new THREE.Mesh(geo, mat);
   }
   DelayTerrain.prototype._build = function () {
@@ -154,33 +175,39 @@
     while (this.group.children.length) {
       var c = this.group.children.pop();
       if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
     }
     if (!this.points) { this._render(); return; }
-    this.group.add(ribbon(this.points, 0, this.buffer, 0x8b93a1));
-    this.group.add(ribbon(this.points, this.buffer, MAX_MIN, 0xc8372d));
-    /* Wall spans the full ribbon depth and stands well above the
-       ridge where it cuts it (0.40 at the demo train's 120-min
-       wall) and above the demo peak (2.31), with a solid red top
-       bar so its edge reads even where the translucent plane
-       washes out against the pale floor. Opacity 0.30 (was 0.22).
-       A chronically late train's far-left peak can exceed the
-       wall — the wall marks a buffer, not a ceiling. */
-    var wall = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 6.5),
-      new THREE.MeshBasicMaterial({ color: 0xc8372d, transparent: true, opacity: 0.30, side: THREE.DoubleSide }));
-    wall.position.set(xOf(this.buffer), 3.25, 0);
+    var peak = 0;
+    this.points.forEach(function (p) { if (p.y > peak) peak = p.y; });
+    this._peakY = ridgeY(peak);
+    var grey = solid(this.points, 0, this.buffer, GREY);
+    if (grey) this.group.add(grey);
+    var red = solid(this.points, this.buffer, MAX_MIN, RED);
+    if (red) this.group.add(red);
+    /* The wall is a plane across the solid's depth (rotated to
+       span z, not x), standing above the peak, with a solid red
+       top bar so its edge reads even where the translucent
+       plane washes out against the pale floor. */
+    var wallH = this._peakY * 1.12 + 0.35;
+    var wall = new THREE.Mesh(new THREE.PlaneGeometry(DEPTH + 0.8, wallH),
+      new THREE.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.30, side: THREE.DoubleSide }));
+    wall.rotation.y = Math.PI / 2;
+    wall.position.set(xOf(this.buffer), wallH / 2, 0);
     this.group.add(wall);
-    var wallTop = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 4.6),
-      new THREE.MeshBasicMaterial({ color: 0xc8372d }));
-    wallTop.position.set(xOf(this.buffer), 6.5, 0);
+    var wallTop = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, DEPTH + 0.8),
+      new THREE.MeshBasicMaterial({ color: RED }));
+    wallTop.position.set(xOf(this.buffer), wallH, 0);
     this.group.add(wallTop);
     // grid markers at the real data points — no invented smoothness
-    var dotGeo = new THREE.SphereGeometry(0.15, 8, 8);
+    var dotGeo = new THREE.SphereGeometry(0.16, 8, 8);
     var dotMat = new THREE.MeshBasicMaterial({ color: 0x1c2434 });
     this.points.forEach(function (p) {
       var d = new THREE.Mesh(dotGeo, dotMat);
-      d.position.set(xOf(p.x), ridgeY(p.y), 0);
+      d.position.set(xOf(p.x), ridgeY(p.y) + 0.04, 0);
       this.group.add(d);
     }.bind(this));
+    this._frameCamera(this._peakY);
     this._render();
   };
   DelayTerrain.prototype._render = function () {
