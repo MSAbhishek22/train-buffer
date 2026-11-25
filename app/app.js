@@ -1,11 +1,12 @@
-/* Train Buffer app controller. Data: data/aggregate.json (precomputed
-   counts, n >= 30 per pair). No server, no tracking, no accounts. */
+/* Train Buffer app controller. Data: data/search.json (train list)
+   plus one small file per train under data/t/ (counts, n >= 30
+   per pair). No server, no tracking, no accounts. */
 (function () {
   "use strict";
   var R = window.TrainBufferRisk;
   var els = {};
   ["trainSearch", "stationSelect", "trainMatches", "bufferSlider",
-   "bufferValue", "answer", "answerHint", "terrain"].forEach(function (id) {
+   "bufferValue", "answer", "answerHint", "terrain", "terrainCap"].forEach(function (id) {
     els[id] = document.getElementById(id);
   });
 
@@ -30,7 +31,12 @@
       els.answerHint.textContent = "Pick your train and the station where you get down. " +
         DATA.meta.rows_used.toLocaleString("en-IN") + " recorded stops, " + DATA.meta.window + ".";
       els.trainSearch.addEventListener("input", onSearch);
-      els.trainSearch.focus();
+      /* The 3D terrain must be visible on first load, not hidden
+         behind a train pick: open with the Mumbai Rajdhani into
+         New Delhi (12951, 61 runs) as the live demo. The user can
+         change train or station above and the shape becomes theirs. */
+      var demoTrain = DATA.byNum["12951"] ? "12951" : (DATA.list[0] ? DATA.list[0][0] : null);
+      if (demoTrain) pickTrain(demoTrain, "NDLS");
     })
     .catch(function () {
       els.answerHint.textContent = "The data file did not load. Check your connection and refresh.";
@@ -71,7 +77,7 @@
     }
   }
 
-  function pickTrain(num) {
+  function pickTrain(num, station) {
     currentTrain = num;
     els.trainSearch.value = num + "  " + (DATA.byNum[num] || "");
     els.trainMatches.innerHTML = "";
@@ -89,7 +95,8 @@
         els.stationSelect.appendChild(opt);
       });
       els.stationSelect.disabled = false;
-      currentStation = stations[0];
+      currentStation = (station && stations.indexOf(station) !== -1) ? station : stations[0];
+      els.stationSelect.value = currentStation;
       els.stationSelect.onchange = function () { currentStation = els.stationSelect.value; update(); };
       els.bufferSlider.disabled = false;
       update();
@@ -135,6 +142,8 @@
     meta.textContent = "Counted from " + p.n + " runs · median delay " + Math.round(p.p50) +
       " min · 9 in 10 runs within " + Math.round(p.p90) + " min · data " + DATA.meta.window;
     els.answer.appendChild(meta);
+    els.terrainCap.textContent = "Showing " + currentTrain + " " + name + " into " + currentStation +
+      " — the ridge is this train's real lateness. The wall is your buffer; everything red beyond it is the chance you miss your connection. Change the train above and the shape becomes yours.";
     terrain.setData(R.survivalPoints(p, DATA.meta.buffers), buffer);
   }
 

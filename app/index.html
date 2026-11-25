@@ -16,7 +16,14 @@
 </header>
 
 <main>
-  <section class="tool" aria-label="Buffer checker">
+  <section class="hero" aria-label="What this is">
+    <h1>Your train is late <span class="red">on its bad days</span>.<br>Count those, not the average.</h1>
+    <p class="hero-sub">Averages hide the one run in eight that comes in three hours late — and that is the run that kills your connection. This page counts a year of real runs, train by train, station by station, and shows the risk as a shape you can see.</p>
+    <p class="hero-demo muted">Below: the Mumbai Rajdhani (12951) into New Delhi, drawn live from its own 61 recorded runs. Change the train and the shape becomes yours.</p>
+    <a class="scroll-cue" href="#tool">Check your own train <span aria-hidden="true">↓</span></a>
+  </section>
+
+  <section class="tool" id="tool" aria-label="Buffer checker">
     <div class="fields">
       <label class="field grow">Train number or name
         <input id="trainSearch" type="text" inputmode="search" placeholder="Try 12951, or search Mumbai Rajdhani…" autocomplete="off">
@@ -48,7 +55,7 @@
 
     <div class="terrain-wrap">
       <canvas id="terrain" aria-label="Delay terrain: the shape of this train's lateness, with a wall at your buffer. The red part beyond the wall is your miss chance."></canvas>
-      <p class="terrain-cap muted">The shape of this train's lateness. The wall is your buffer. Everything red beyond it is the chance you miss your connection.</p>
+      <p class="terrain-cap muted" id="terrainCap">The shape of this train's lateness. The wall is your buffer. Everything red beyond it is the chance you miss your connection.</p>
     </div>
   </section>
 
